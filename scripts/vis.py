@@ -75,15 +75,6 @@ plt.rcParams.update({
 # ─────────────────────────────────────────────────────────────────────────────
 
 def discover_files(folder: str) -> dict:
-    """
-    Locate signal files inside *folder* using keyword matching.
-    File names vary across participants (different date separators, signal
-    name variants), so we match by keyword rather than exact name.
-
-    Returns a dict with keys:
-        nasal, thorac, spo2, events, sleep
-    Raises FileNotFoundError if any required file is missing.
-    """
     files = [f for f in os.listdir(folder) if f.endswith(".txt")]
 
     def find(keywords_include, keywords_exclude=None):
@@ -114,19 +105,10 @@ def discover_files(folder: str) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _parse_ts(ts_str: str) -> datetime:
-    """Parse 'DD.MM.YYYY HH:MM:SS.f' (comma already replaced with period)."""
     return datetime.strptime(ts_str, "%d.%m.%Y %H:%M:%S.%f")
 
 
 def parse_continuous(file_path: str) -> tuple[pd.Series, dict]:
-    """
-    Parse a continuous-signal file (Nasal Airflow / Thoracic Movement / SpO2).
-
-    Returns
-    -------
-    series      : pd.Series with DatetimeIndex, name = signal type from header
-    header_info : dict of metadata
-    """
     header, rows, in_data = {}, [], False
 
     with open(file_path, "r", errors="replace") as fh:
@@ -162,12 +144,6 @@ def parse_continuous(file_path: str) -> tuple[pd.Series, dict]:
 
 
 def parse_events(file_path: str) -> pd.DataFrame:
-    """
-    Parse a Flow Events annotation file.
-
-    Each row: DD.MM.YYYY HH:MM:SS,mmm-HH:MM:SS,mmm; duration_s; EventType; Stage
-    End-time contains only the time portion → date is inherited from start.
-    """
     HEADER_KEYS = {"Signal ID:", "Start Time:", "Unit:", "Signal Type:"}
     in_data, rows = False, []
 
@@ -205,10 +181,6 @@ def parse_events(file_path: str) -> pd.DataFrame:
 
 
 def parse_sleep(file_path: str) -> pd.Series:
-    """
-    Parse a Sleep Profile file (discrete 30-second epochs).
-    Returns pd.Series with DatetimeIndex and sleep stage strings.
-    """
     in_data, rows = False, []
 
     with open(file_path, "r", errors="replace") as fh:
@@ -243,7 +215,6 @@ def parse_sleep(file_path: str) -> pd.Series:
 
 def compute_metrics(events: pd.DataFrame, sleep: pd.Series,
                     spo2: pd.Series) -> dict:
-    """Compute AHI, TST, sleep efficiency, T90, event counts."""
     sleep_epochs = sleep[~sleep.isin(WAKE_STAGES)]
     tst_s  = len(sleep_epochs) * EPOCH_S
     tst_h  = tst_s / 3600
@@ -291,7 +262,6 @@ def _fmt_axis(ax, ylabel, colour):
 
 
 def _shade_events(ax, events: pd.DataFrame, ymin=0, ymax=1):
-    """Shade breathing event windows on axis *ax* (uses axis transform)."""
     for _, row in events.iterrows():
         ec = EVENT_COLOURS.get(row["Type"], DEFAULT_EVENT_COLOUR)
         ax.axvspan(row["Start"], row["End"], ymin=ymin, ymax=ymax,
@@ -306,7 +276,6 @@ def _event_legend_handles():
 
 
 def _downsample(series: pd.Series, max_pts: int = 20_000) -> pd.Series:
-    """Thin a high-frequency series for fast rendering without losing peaks."""
     if len(series) <= max_pts:
         return series
     step = len(series) // max_pts
