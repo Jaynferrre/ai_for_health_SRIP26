@@ -62,7 +62,7 @@ Each recording also includes:
 
 ---
 
-## ⚙️ Setup
+## Setup
 
 ```bash
 git clone https://github.com/<your-username>/ai_for_health_SRIP26.git
